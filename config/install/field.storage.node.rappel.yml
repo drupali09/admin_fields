@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - admin_fields
+    - datetime
+id: node.rappel
+field_name: rappel
+entity_type: node
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  datetime_type: date
+type: datetime

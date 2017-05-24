@@ -1,0 +1,4 @@
+show admin fields form on content type settings page:
+  title: 'show admin fields form on content type settings page'
+  description: 'show admin fields form on content type settings page'
+  restrict access: true

@@ -1,0 +1,13 @@
+name: Admin fields
+description: 'Add admin fields (Date de rappel, note, contact, slug) in the chosen content types'
+dependencies:
+  - taxonomy
+type: module
+# core: '8.x'
+# version: '8.x-1.0'
+
+# Information added by Drupal.org packaging script on 2017-05-09
+version: 8.x-1.0
+core: 8.x
+project: 'admin_fields'
+datestamp: 1489099390

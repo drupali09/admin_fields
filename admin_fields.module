@@ -1,0 +1,212 @@
+<?php
+
+/**
+ * @file
+ * Allows access to terms in a vocabulary to be limited by role per content type.
+ */
+
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Form\FormState;
+use Drupal\permissions_by_term_per_content_type\Controller\PermissionsByTermPerContentTypeController;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Config\Entity\ConfigEntityType;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Url;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+
+/**
+ * Implements hook_entity_type_alter().
+ *
+ * Adds the Admin fields config tab to the entity configuration page.
+ */
+function admin_fields_entity_type_alter(array &$entity_types) {
+  $module_handler = \Drupal::moduleHandler();
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  foreach ($entity_types as $entity_type_id => $entity_type) {
+    // Support core entity types only. Contrib and custom entity types should
+    // use a hook or service (@todo https://www.drupal.org/node/2829571).
+    $core_entity = FALSE;
+    $module_name = $entity_type->getProvider();
+    if ($module_name != 'core') {
+      // Identify core entity types that are provided by modules.
+      $module = $module_handler->getModule($module_name);
+      if (preg_match('/^core/', $module->getPath())){
+        $core_entity = TRUE;
+      }
+    }
+    else {
+      // Some core entity types are not provided by a module.
+      $core_entity = TRUE;
+    }
+    if ($core_entity && $entity_type instanceof ConfigEntityType && $entity_type->hasLinkTemplate('edit-form')) {
+      $entity_type->setLinkTemplate('admin-fields', $entity_type->getLinkTemplate('edit-form') . "/admin-fields");
+    }
+  }
+}
+
+/**
+ * Implements hook_help().
+ */
+function admin_fields_help($route_name, RouteMatchInterface $arg) {
+  switch ($route_name) {
+    case 'help.page.admin_fields':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('') . '</p>';
+      return $output;
+
+  }
+}
+
+/**
+ * Adds the default slug field to a node type.
+ *
+ * @param $type
+ *   String of A node type.
+ * @param string $label
+ *   (optional) The label for the body instance.
+ *
+ * @return \Drupal\field\Entity\FieldConfig
+ *   A Slug field object.
+ */
+function admin_fields_add_slug_field($type, $label = 'Slug') {
+  // Add or remove the body field, as needed.
+  $field_storage = FieldStorageConfig::loadByName('node', 'slug');
+  $field = FieldConfig::loadByName('node', $type, 'slug');
+  if (empty($field)) {
+    $field = entity_create('field_config', array(
+      'field_storage' => $field_storage,
+      'bundle' => $type,
+      'label' => $label,
+      //'settings' => array('display_summary' => TRUE),
+    ));
+    $field->save();
+    // Assign widget settings for the 'default' form mode.
+    entity_get_form_display('node', $type, 'default')
+      ->setComponent('slug', array(
+        'type' => 'text_textfield',
+      ))
+      ->save();
+    // Assign display settings for the 'default' and 'teaser' view modes.
+    entity_get_display('node', $type, 'default')
+      ->setComponent('slug', array(
+        'label' => 'above',
+        'type' => 'text_default',
+      ))
+      ->save();
+    // The teaser view mode is created by the Standard profile and therefore
+    // might not exist.
+    $view_modes = \Drupal::entityManager()->getViewModes('node');
+    if (isset($view_modes['teaser'])) {
+      entity_get_display('node', $type, 'teaser')
+        ->setComponent('slug', array(
+          'label' => 'hidden',
+          'type' => 'text_default',
+        ))
+        ->save();
+    }
+  }
+  return $field;
+}
+
+/**
+ * Adds the default textarea field to a node type.
+ *
+ * @param $type
+ *   A node type string.
+ * @param string $label
+ *   (optional) The label for the body instance.
+ *
+ * * @param string $name
+ *   (optional) The name for the field.
+ *
+ * @return \Drupal\field\Entity\FieldConfig
+ *   A textarea field object.
+ */
+function admin_fields_add_textarea_field($type, $label = 'Note', $name) {
+  // Add or remove the body field, as needed.
+  $field_storage = FieldStorageConfig::loadByName('node', $name);
+  $field = FieldConfig::loadByName('node', $type, $name);
+  if (empty($field)) {
+    $field = entity_create('field_config', array(
+      'field_storage' => $field_storage,
+      'bundle' => $type,
+      'label' => $label,
+      'settings' => array('display_summary' => TRUE),
+    ));
+    $field->save();
+    // Assign widget settings for the 'default' form mode.
+    entity_get_form_display('node', $type, 'default')
+      ->setComponent($name, array(
+        'type' => 'text_textarea_with_summary',
+      ))
+      ->save();
+    // Assign display settings for the 'default' and 'teaser' view modes.
+    entity_get_display('node', $type, 'default')
+      ->setComponent($name, array(
+        'label' => 'hidden',
+        'type' => 'text_default',
+      ))
+      ->save();
+    // The teaser view mode is created by the Standard profile and therefore
+    // might not exist.
+    $view_modes = \Drupal::entityManager()->getViewModes('node');
+    if (isset($view_modes['teaser'])) {
+      entity_get_display('node', $type, 'teaser')
+        ->setComponent($name, array(
+          'label' => 'hidden',
+          'type' => 'text_summary_or_trimmed',
+        ))
+        ->save();
+    }
+  }
+  return $field;
+}
+
+function admin_fields_add_date_field($type, $label = 'Date de rappel', $name) {
+  // Add or remove the body field, as needed.
+  $field_storage = FieldStorageConfig::loadByName('node', $name);
+  $field = FieldConfig::loadByName('node', $type, $name);
+  if (empty($field)) {
+    $field = entity_create('field_config', array(
+      'field_storage' => $field_storage,
+      'bundle' => $type,
+      'label' => $label,
+      //'settings' => array('display_summary' => TRUE),
+    ));
+    $field->save();
+    // Assign widget settings for the 'default' form mode.
+    entity_get_form_display('node', $type, 'default')
+      ->setComponent($name, array(
+        'type' => 'datetime_default',
+      ))
+      ->save();
+    // Assign display settings for the 'default' and 'teaser' view modes.
+    entity_get_display('node', $type, 'default')
+      ->setComponent($name, array(
+        'label' => 'above',
+        'type' => 'datetime_default',
+      ))
+      ->save();
+    // The teaser view mode is created by the Standard profile and therefore
+    // might not exist.
+    $view_modes = \Drupal::entityManager()->getViewModes('node');
+    if (isset($view_modes['teaser'])) {
+      entity_get_display('node', $type, 'teaser')
+        ->setComponent($name, array(
+          'label' => 'above',
+          'type' => 'datetime_default',
+        ))
+        ->save();
+    }
+  }
+  return $field;
+}

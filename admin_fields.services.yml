@@ -1,0 +1,7 @@
+services:
+    admin_fields.route_subscriber:
+        class: Drupal\admin_fields\Routing\RouteSubscriber
+        arguments: ['@entity.manager']
+        tags:
+          - { name: event_subscriber }
+

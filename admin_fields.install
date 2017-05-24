@@ -1,0 +1,12 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the admin_fields module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function admin_fields_schema() {
+}

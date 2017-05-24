@@ -1,0 +1,3 @@
+admin_fields.config:
+  class: \Drupal\Core\Menu\LocalTaskDefault
+  deriver: \Drupal\admin_fields\Plugin\Derivative\AdminFieldsConfigTask
