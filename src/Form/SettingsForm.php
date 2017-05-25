@@ -59,12 +59,14 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
+    kint(\Drupal::entityQuery('node')->condition('type','article')->execute());
     $config = $this->config('admin_fields.settings');
     $admin_fields_track = $config->get('admin_fields_track');
 
     $content_type = $this->entity_type_id;
     $disabled = False;
-    if (in_array($this->entity_type_id, $admin_fields_track)) {
+    $nids = \Drupal::entityQuery('node')->condition('type', $content_type)->execute();
+    if (in_array($this->entity_type_id, $admin_fields_track) && count($nids)) {
       $disabled = True;
     }
     $form[$content_type] = array(
@@ -106,7 +108,6 @@ class SettingsForm extends ConfigFormBase {
     }
     $config->set('admin_fields_track', $admin_fields_track)->save();
     parent::submitForm($form, $form_state);
-
   }
 
 }

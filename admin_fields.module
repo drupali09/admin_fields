@@ -93,6 +93,7 @@ function admin_fields_add_slug_field($type, $label = 'Slug') {
     entity_get_form_display('node', $type, 'default')
       ->setComponent('slug', array(
         'type' => 'text_textfield',
+        'weight' => 4,
       ))
       ->save();
     // Assign display settings for the 'default' and 'teaser' view modes.
@@ -100,6 +101,7 @@ function admin_fields_add_slug_field($type, $label = 'Slug') {
       ->setComponent('slug', array(
         'label' => 'above',
         'type' => 'text_default',
+        'weight' => 4,
       ))
       ->save();
     // The teaser view mode is created by the Standard profile and therefore
@@ -110,6 +112,7 @@ function admin_fields_add_slug_field($type, $label = 'Slug') {
         ->setComponent('slug', array(
           'label' => 'hidden',
           'type' => 'text_default',
+          'weight' => 4,
         ))
         ->save();
     }
@@ -147,6 +150,7 @@ function admin_fields_add_textarea_field($type, $label = 'Note', $name) {
     entity_get_form_display('node', $type, 'default')
       ->setComponent($name, array(
         'type' => 'text_textarea_with_summary',
+        'weight' => 3,
       ))
       ->save();
     // Assign display settings for the 'default' and 'teaser' view modes.
@@ -154,6 +158,7 @@ function admin_fields_add_textarea_field($type, $label = 'Note', $name) {
       ->setComponent($name, array(
         'label' => 'hidden',
         'type' => 'text_default',
+        'weight' => 3,
       ))
       ->save();
     // The teaser view mode is created by the Standard profile and therefore
@@ -164,6 +169,7 @@ function admin_fields_add_textarea_field($type, $label = 'Note', $name) {
         ->setComponent($name, array(
           'label' => 'hidden',
           'type' => 'text_summary_or_trimmed',
+          'weight' => 3,
         ))
         ->save();
     }
@@ -187,6 +193,7 @@ function admin_fields_add_date_field($type, $label = 'Date de rappel', $name) {
     entity_get_form_display('node', $type, 'default')
       ->setComponent($name, array(
         'type' => 'datetime_default',
+        'weight' => 2,
       ))
       ->save();
     // Assign display settings for the 'default' and 'teaser' view modes.
@@ -194,6 +201,7 @@ function admin_fields_add_date_field($type, $label = 'Date de rappel', $name) {
       ->setComponent($name, array(
         'label' => 'above',
         'type' => 'datetime_default',
+        'weight' => 2,
       ))
       ->save();
     // The teaser view mode is created by the Standard profile and therefore
@@ -204,9 +212,50 @@ function admin_fields_add_date_field($type, $label = 'Date de rappel', $name) {
         ->setComponent($name, array(
           'label' => 'above',
           'type' => 'datetime_default',
+          'weight' => 2,
         ))
         ->save();
     }
   }
   return $field;
+}
+
+function admin_fields_delete_all_fields() {
+  $contentTypes = \Drupal::service('entity.manager')->getStorage('node_type')->loadMultiple();
+
+  $contentTypesList = [];
+  foreach ($contentTypes as $contentType) {
+    $contentTypesList[$contentType->id()] = $contentType->label();
+  }
+
+  foreach ($contentTypesList as $contentTypeId => $contentTypeName) {
+    $field = \Drupal::entityManager()
+      ->getStorage('field_config')
+      ->load('node.' . $contentTypeId . '.slug');
+    if ($field) {
+      $field->delete();
+    }
+
+    $field = \Drupal::entityManager()
+      ->getStorage('field_config')
+      ->load('node.' . $contentTypeId . '.note');
+    if ($field) {
+      $field->delete();
+    }
+
+    $field = \Drupal::entityManager()
+      ->getStorage('field_config')
+      ->load('node.' . $contentTypeId . '.contact');
+    if ($field) {
+      $field->delete();
+    }
+
+    $field = \Drupal::entityManager()
+      ->getStorage('field_config')
+      ->load('node.' . $contentTypeId . '.rappel');
+    if ($field) {
+      $field->delete();
+    }
+
+  }
 }
